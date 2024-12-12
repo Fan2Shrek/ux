@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.23.0
+
+-   Add support for providing options to the EventSource via `turbo_stream_listen`
+
 ## 2.22.0
 
 -   Add `<twig:Turbo:Stream>` component

@@ -42,8 +42,12 @@ final class TurboStreamListenRenderer implements TurboStreamListenRendererInterf
         $this->stimulusHelper = $stimulus;
     }
 
-    public function renderTurboStreamListen(Environment $env, $topic): string
+    public function renderTurboStreamListen(Environment $env, $topic /* array $eventSourceOptions = [] */): string
     {
+        if (\func_num_args() > 2) {
+            $eventSourceOptions = func_get_arg(2);
+        }
+
         $topics = $topic instanceof TopicSet
             ? array_map($this->resolveTopic(...), $topic->getTopics())
             : [$this->resolveTopic($topic)];
@@ -53,6 +57,10 @@ final class TurboStreamListenRenderer implements TurboStreamListenRendererInterf
             $controllerAttributes['topics'] = $topics;
         } else {
             $controllerAttributes['topic'] = current($topics);
+        }
+
+        if (isset($eventSourceOptions, $eventSourceOptions['withCredentials'])) {
+            $controllerAttributes['withCredentials'] = $eventSourceOptions['withCredentials'];
         }
 
         $stimulusAttributes = $this->stimulusHelper->createStimulusAttributes();
