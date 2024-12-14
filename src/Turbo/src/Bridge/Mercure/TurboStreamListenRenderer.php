@@ -11,10 +11,12 @@
 
 namespace Symfony\UX\Turbo\Bridge\Mercure;
 
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Mercure\Authorization;
 use Symfony\Component\Mercure\HubInterface;
 use Symfony\UX\StimulusBundle\Helper\StimulusHelper;
 use Symfony\UX\Turbo\Broadcaster\IdAccessor;
-use Symfony\UX\Turbo\Twig\TurboStreamListenRendererInterface;
+use Symfony\UX\Turbo\Twig\TurboStreamListenRendererWithOptionsInterface;
 use Symfony\WebpackEncoreBundle\Twig\StimulusTwigExtension;
 use Twig\Environment;
 
@@ -23,7 +25,7 @@ use Twig\Environment;
  *
  * @author Kévin Dunglas <kevin@dunglas.fr>
  */
-final class TurboStreamListenRenderer implements TurboStreamListenRendererInterface
+final class TurboStreamListenRenderer implements TurboStreamListenRendererWithOptionsInterface
 {
     private StimulusHelper $stimulusHelper;
 
@@ -31,6 +33,8 @@ final class TurboStreamListenRenderer implements TurboStreamListenRendererInterf
         private HubInterface $hub,
         StimulusHelper|StimulusTwigExtension $stimulus,
         private IdAccessor $idAccessor,
+        private ?Authorization $authorization = null,
+        private ?RequestStack $requestStack = null,
     ) {
         if ($stimulus instanceof StimulusTwigExtension) {
             trigger_deprecation('symfony/ux-turbo', '2.9', 'Passing an instance of "%s" as second argument of "%s" is deprecated, pass an instance of "%s" instead.', StimulusTwigExtension::class, __CLASS__, StimulusHelper::class);
@@ -59,8 +63,27 @@ final class TurboStreamListenRenderer implements TurboStreamListenRendererInterf
             $controllerAttributes['topic'] = current($topics);
         }
 
-        if (isset($eventSourceOptions, $eventSourceOptions['withCredentials'])) {
-            $controllerAttributes['withCredentials'] = $eventSourceOptions['withCredentials'];
+        if (isset($eventSourceOptions)) {
+            if (
+                null !== $this->authorization
+                && null !== $this->requestStack
+                && (isset($eventSourceOptions['subscribe']) || isset($eventSourceOptions['publish']) || isset($eventSourceOptions['additionalClaims']))
+                && null !== $request = $this->requestStack->getMainRequest()
+            ) {
+                $this->authorization->setCookie(
+                    $request,
+                    $eventSourceOptions['subscribe'] ?? [],
+                    $eventSourceOptions['publish'] ?? [],
+                    $eventSourceOptions['additionalClaims'] ?? [],
+                    $eventSourceOptions['transport'] ?? null,
+                );
+
+                unset($eventSourceOptions['subscribe'], $eventSourceOptions['publish'], $eventSourceOptions['additionalClaims'], $eventSourceOptions['transport']);
+            }
+
+            if (isset($eventSourceOptions['withCredentials'])) {
+                $controllerAttributes['withCredentials'] = $eventSourceOptions['withCredentials'];
+            }
         }
 
         $stimulusAttributes = $this->stimulusHelper->createStimulusAttributes();

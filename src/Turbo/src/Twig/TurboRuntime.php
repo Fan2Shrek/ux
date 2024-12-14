@@ -12,8 +12,6 @@
 namespace Symfony\UX\Turbo\Twig;
 
 use Psr\Container\ContainerInterface;
-use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\Mercure\Authorization;
 use Symfony\UX\Turbo\Bridge\Mercure\TopicSet;
 use Twig\Environment;
 use Twig\Extension\RuntimeExtensionInterface;
@@ -28,8 +26,6 @@ class TurboRuntime implements RuntimeExtensionInterface
     public function __construct(
         private ContainerInterface $turboStreamListenRenderers,
         private string $default,
-        private ?Authorization $authorization = null,
-        private ?RequestStack $requestStack = null,
     ) {
     }
 
@@ -39,7 +35,7 @@ class TurboRuntime implements RuntimeExtensionInterface
      */
     public function renderTurboStreamListen(Environment $env, $topic, ?string $transport = null, array $options = []): string
     {
-        $transport ??= $this->default;
+        $options['transport'] = $transport ??= $this->default;
 
         if (!$this->turboStreamListenRenderers->has($transport)) {
             throw new \InvalidArgumentException(\sprintf('The Turbo stream transport "%s" does not exist.', $transport));
@@ -49,23 +45,10 @@ class TurboRuntime implements RuntimeExtensionInterface
             $topic = new TopicSet($topic);
         }
 
-        if (
-            null !== $this->authorization
-            && null !== $this->requestStack
-            && (isset($options['subscribe']) || isset($options['publish']) || isset($options['additionalClaims']))
-            && null !== $request = $this->requestStack->getMainRequest()
-        ) {
-            $this->authorization->setCookie(
-                $request,
-                $options['subscribe'] ?? [],
-                $options['publish'] ?? [],
-                $options['additionalClaims'] ?? [],
-                $transport,
-            );
+        $renderer = $this->turboStreamListenRenderers->get($transport);
 
-            unset($options['subscribe'], $options['publish'], $options['additionalClaims']);
-        }
-
-        return $this->turboStreamListenRenderers->get($transport)->renderTurboStreamListen($env, $topic, $options);
+        return $renderer instanceof TurboStreamListenRendererWithOptionsInterface
+            ? $renderer->renderTurboStreamListen($env, $topic, $options) // @phpstan-ignore-line
+            : $renderer->renderTurboStreamListen($env, $topic);
     }
 }

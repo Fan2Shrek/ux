@@ -16,7 +16,6 @@ use Twig\TwigFunction;
 
 /**
  * @author Kévin Dunglas <kevin@dunglas.fr>
- * @author Pierre Ambroise <pierre27.ambroise@gmail.com>
  */
 final class TwigExtension extends AbstractExtension
 {

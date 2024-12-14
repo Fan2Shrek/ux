@@ -11,7 +11,6 @@
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use Symfony\Component\Mercure\Authorization;
 use Symfony\UX\Turbo\Broadcaster\BroadcasterInterface;
 use Symfony\UX\Turbo\Broadcaster\IdAccessor;
 use Symfony\UX\Turbo\Broadcaster\ImuxBroadcaster;
@@ -53,8 +52,6 @@ return static function (ContainerConfigurator $container): void {
             ->args([
                 tagged_locator('turbo.renderer.stream_listen', 'transport'),
                 abstract_arg('default'),
-                service(Authorization::class)->nullOnInvalid(),
-                service('request_stack')->nullOnInvalid(),
             ])
             ->tag('twig.runtime')
 
